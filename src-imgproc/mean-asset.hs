@@ -1,4 +1,7 @@
 
+-- read and compute the average pixel value of each png image given in the
+-- arguments
+--
 -- "cabal run mean-asset assets/*"
 
 import Control.Monad (forM_)

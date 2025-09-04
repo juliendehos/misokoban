@@ -43,7 +43,7 @@ nix-shell
 code .
 ```
 
-## generate worlds
+## generate worlds, from assets + screenshots
 
 ```
 nix-shell

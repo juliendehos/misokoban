@@ -1,4 +1,7 @@
 
+-- read png images (screenshots of sokoban maps) and generate the corresponding
+-- haskell code, to be used for building the miso app
+-- 
 -- cabal run gen-worlds
 -- cp GeneratedWorlds.hs src/
 

@@ -11,6 +11,7 @@ import World
 
 type MyPixel = Pixel (Alpha RGB) Double
 
+-- read a png file and compute its average 32x32 blocs
 loadAvg32 :: FilePath -> IO (Array S Ix2 MyPixel)
 loadAvg32 fp = do
   img :: Image S (Alpha RGB) Word8 <- readImage fp
