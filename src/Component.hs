@@ -12,7 +12,6 @@ import Miso.Lens
 import Miso.Html.Element as H
 import Miso.Html.Event as E
 import Miso.Html.Property as P
--- import Miso.CSS qualified as CSS
 
 import Model
 import Game
@@ -29,8 +28,7 @@ assetsUrl = "assets/"
 -------------------------------------------------------------------------------
 
 data Action
-  = ActionSayHelloWorld
-  | ActionSetLevel Int
+  = ActionSetLevel Int
   | ActionKey IS.IntSet
 
 -------------------------------------------------------------------------------
@@ -38,11 +36,6 @@ data Action
 -------------------------------------------------------------------------------
 
 updateModel :: Action -> Transition Model Action
-
-updateModel ActionSayHelloWorld =
-  io_ $ do
-    consoleLog "Hello World"
-    alert "Hello World"
 
 updateModel (ActionSetLevel n) = do
   put $ mkModel n
@@ -60,13 +53,6 @@ updateModel (ActionKey keys)
       forM_ mg $ \g -> do
         modelGame .= g
         modelNbMoves += 1
-
-{-
-  g <- use modelGame
-  if computeTerminated g
-    then issue $ ActionSetLevel (getLevel g + 1)
-    else doKey
--}
 
 -------------------------------------------------------------------------------
 -- resources
@@ -104,7 +90,10 @@ instance FromJSVal Resources where
 viewModel :: Model -> View Model Action
 viewModel m@Model{..} = 
   div_ []
-    [ p_ [] [ button_ [ onClick ActionSayHelloWorld ] [ "Alert Hello World!" ] ]
+    [ p_ [] 
+        [ button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "reset" ] 
+        , button_ [ onClick (ActionSetLevel $ 1 + getLevel _modelGame) ] [ "next" ] 
+        ]
     , p_ [] [ text ("nb moves: " <> ms (show _modelNbMoves) <> status) ]
     , Canvas.canvas
         [ width_ $ ms $ show w
@@ -115,7 +104,7 @@ viewModel m@Model{..} =
     ]
   where
     (w, h) = ij2xy $ getNiNj _modelGame
-    status = if computeRunning _modelGame then "..." else ", done !!!"
+    status = if computeRunning _modelGame then "" else ", done !!!"
 
 initCanvas :: DOMRef -> Canvas Resources
 initCanvas _ = liftJSM $ 
@@ -164,7 +153,6 @@ mkComponent =
   let initialMode = mkModel 1
   in (component initialMode updateModel viewModel)
       { subs = [ keyboardSub ActionKey ]
-      -- , initialAction = Just (ActionSetLevel 1)
-      , logLevel = DebugAll
+      -- , logLevel = DebugAll
       }
 
