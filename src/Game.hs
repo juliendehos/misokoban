@@ -11,7 +11,6 @@ module Game
   , computeBoxes12
   , computeRunning
   , computeTerminated
-  , getLevel
   ) where
 
 import Control.Lens
@@ -29,18 +28,14 @@ data Move
 
 data Game = Game
   { _gameWorld :: World
-  , _gameWorldIdx :: Int    -- 1-indexed world, in allWorlds
   , _gamePlayer :: Position
   , _gameBoxes :: S.Set Position
   } deriving (Eq)
 
 makeLenses ''Game
 
-getLevel :: Game -> Int
-getLevel = _gameWorldIdx
-
 mkGame :: Int -> Game
-mkGame n = Game w (k + 1) (w ^. worldPlayer) (w ^. worldBoxes)
+mkGame n = Game w (w ^. worldPlayer) (w ^. worldBoxes)
   where
     k = mod (n-1) (length allWorlds)
     w = allWorlds !! k

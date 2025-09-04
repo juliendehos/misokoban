@@ -1,6 +1,8 @@
 # misokoban
 
-Sokoban in Miso.
+Sokoban in [Miso](https://github.com/dmjio/miso).
+
+![](demo-misokoban.gif)
 
 ## setup
 

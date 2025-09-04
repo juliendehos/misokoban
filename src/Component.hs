@@ -99,9 +99,18 @@ viewModel :: Model -> View Model Action
 viewModel m@Model{..} =
   div_ [ id_ "main div" ]
     [ p_ [] 
+        [ "This is "
+        , a_ [ href_ "https://en.wikipedia.org/wiki/Sokoban" ] [ "Sokoban" ]
+        , ", implemented in "
+        , a_ [ href_ "https://github.com/dmjio/miso" ] [ "Miso" ]
+        , ", and inspired by "
+        , a_ [ href_ "https://www.mathsisfun.com/games/sokoban.html" ] [ "Math is fun" ]
+        , "."
+        ]
+    , p_ [] 
         [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
-        , button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "reset" ] 
-        , button_ [ onClick (ActionSetLevel $ 1 + getLevel _modelGame) ] [ "next level" ] 
+        , button_ [ onClick (ActionSetLevel _modelLevel) ] [ "reset" ] 
+        , button_ [ onClick (ActionSetLevel (1 + _modelLevel)) ] [ "next level" ] 
         ]
     , p_ [] [ text ("nb moves: " <> ms (show _modelNbMoves) <> status) ]
     , Canvas.canvas
@@ -121,7 +130,7 @@ viewModel m@Model{..} =
     fmtOption l = 
       let lStr = ms $ show l
       in option_
-          [ selected_ (getLevel _modelGame == l), value_ lStr ]
+          [ selected_ (_modelLevel == l), value_ lStr ]
           [ text ("level " <> lStr) ]
 
 initCanvas :: DOMRef -> Canvas Resources
