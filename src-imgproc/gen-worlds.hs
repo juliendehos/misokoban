@@ -7,6 +7,7 @@
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
+import Control.Lens
 import Control.Monad (forM)
 import Data.List (intercalate, sort)
 import Data.Massiv.Array qualified as M
@@ -14,7 +15,6 @@ import Data.Set qualified as S
 import Data.Tuple (swap)
 import Data.Vector qualified as V
 import Graphics.Pixel (Pixel(PixelRGBA))
-import Miso.Lens
 import System.Directory (listDirectory)
 import System.IO (withFile, hPutStr, hPutStrLn, IOMode(WriteMode))
 
@@ -68,13 +68,10 @@ imageToWorld fp = do
         CtBox1    -> w & worldBoxes %~ S.insert (i, j)
         CtBox2    -> w & worldBoxes %~ S.insert (i, j)
                        & worldBoard %~ (V.// [(ij2k nj (i, j), CellT)])
-        CtPlayer  -> w & worldInitialPos .~ (i, j)
+        CtPlayer  -> w & worldPlayer .~ (i, j)
         CtEmpty   -> w
 
-  pure $ M.ifoldlS f (mkWorld (ni, nj)) img
-
-ij2k :: Int -> (Int, Int) -> Int
-ij2k nj (i, j) = i*nj + j
+  pure $ M.ifoldlS f (emptyWorld (ni, nj)) img
 
 main :: IO ()
 main = do

@@ -28,10 +28,18 @@ data World = World
   { _worldNiNj :: (Int, Int)
   , _worldBoard :: V.Vector Cell
   , _worldBoxes :: S.Set Position
-  , _worldInitialPos :: Position
+  , _worldPlayer :: Position
   } deriving (Eq, Show)
 
 makeLenses ''World
+
+ij2k :: Int -> (Int, Int) -> Int
+ij2k nj (i, j) = i*nj + j
+
+emptyWorld :: (Int, Int) -> World
+emptyWorld (ni, nj) = World (ni, nj) board S.empty (0, 0)
+  where
+    board = V.replicate (ni*nj) CellE
 
 -------------------------------------------------------------------------------
 -- MyShow typeclass, for generating worlds source code from images
@@ -57,6 +65,6 @@ instance MyShow World where
     ++ "{ _worldNiNj = " ++ myshow ninj 
     ++ ", _worldBoard = " ++ myshow board
     ++ ", _worldBoxes = " ++ myshow boxes
-    ++ ", _worldInitialPos = " ++ myshow initialPos
+    ++ ", _worldPlayer = " ++ myshow initialPos
     ++ "}"
 
