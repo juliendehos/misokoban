@@ -43,8 +43,8 @@ data Action
 
 updateModel :: Action -> Transition Model Action
 
-updateModel (ActionSetLevel n) = 
-  put $ mkModel n
+updateModel (ActionSetLevel l) =
+  put $ mkModel l
 
 updateModel (ActionKey keys)
   | IS.member 37 keys = doPlayMove $ playMove MoveLeft
@@ -54,7 +54,6 @@ updateModel (ActionKey keys)
   | otherwise = pure ()
   where
     doPlayMove f = do
-      modelStarting .= False
       mg <- f <$> use modelGame
       forM_ mg $ \g -> do
         modelGame .= g
@@ -66,8 +65,8 @@ updateModel (ActionAskLevel lStr) = do
     Right l -> issue $ ActionSetLevel l
 
 updateModel ActionAskTime = do
-  starting <- use modelStarting
-  when starting $
+  t <- use modelTime
+  when (t < 3_000) $
     io (ActionSetTime <$> now)
 
 updateModel (ActionSetTime t) = do

@@ -10,15 +10,14 @@ data Model = Model
   { _modelGame :: Game
   , _modelNbMoves :: Int
   , _modelLevel :: Int    -- 1-indexed world, in allWorlds
-  , _modelStarting :: Bool
   , _modelTime :: Double
   } deriving (Eq)
 
 makeLenses ''Model
 
 initialModel :: Model
-initialModel = Model (mkGame 1) 0 1 True 0
+initialModel = Model (mkGame 1) 0 1 0
 
 mkModel :: Int -> Model
-mkModel n = Model (mkGame n) 0 n False 0
+mkModel n = Model (mkGame n) 0 n 0
 
