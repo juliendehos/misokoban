@@ -36,6 +36,9 @@ makeLenses ''World
 ij2k :: Int -> (Int, Int) -> Int
 ij2k nj (i, j) = i*nj + j
 
+k2ij :: Int -> Int -> (Int, Int)
+k2ij nj k = (k `div` nj, k`rem` nj)
+
 emptyWorld :: (Int, Int) -> World
 emptyWorld (ni, nj) = World (ni, nj) board S.empty (0, 0)
   where

@@ -12,7 +12,7 @@ import Miso.Lens
 import Miso.Html.Element as H
 import Miso.Html.Event as E
 import Miso.Html.Property as P
-import Miso.CSS qualified as CSS
+-- import Miso.CSS qualified as CSS
 
 import Model
 import Game
@@ -49,19 +49,24 @@ updateModel (ActionSetLevel n) = do
   io_ $ consoleLog $ "level " <> ms (show n)
 
 updateModel (ActionKey keys)
-  | IS.member 37 keys = do
-      modelGame %= playMove MoveLeft
-      modelNbMoves += 1
-  | IS.member 38 keys = do
-      modelGame %= playMove MoveUp
-      modelNbMoves += 1
-  | IS.member 39 keys = do
-      modelGame %= playMove MoveRight
-      modelNbMoves += 1
-  | IS.member 40 keys = do
-      modelGame %= playMove MoveDown
-      modelNbMoves += 1
+  | IS.member 37 keys = doPlayMove $ playMove MoveLeft
+  | IS.member 38 keys = doPlayMove $ playMove MoveUp
+  | IS.member 39 keys = doPlayMove $ playMove MoveRight
+  | IS.member 40 keys = doPlayMove $ playMove MoveDown
   | otherwise = pure ()
+  where
+    doPlayMove f = do
+      mg <- f <$> use modelGame
+      forM_ mg $ \g -> do
+        modelGame .= g
+        modelNbMoves += 1
+
+{-
+  g <- use modelGame
+  if computeTerminated g
+    then issue $ ActionSetLevel (getLevel g + 1)
+    else doKey
+-}
 
 -------------------------------------------------------------------------------
 -- resources
@@ -100,6 +105,7 @@ viewModel :: Model -> View Model Action
 viewModel m@Model{..} = 
   div_ []
     [ p_ [] [ button_ [ onClick ActionSayHelloWorld ] [ "Alert Hello World!" ] ]
+    , p_ [] [ text ("nb moves: " <> ms (show _modelNbMoves) <> status) ]
     , Canvas.canvas
         [ width_ $ ms $ show w
         , height_ $ ms $ show h
@@ -109,6 +115,7 @@ viewModel m@Model{..} =
     ]
   where
     (w, h) = ij2xy $ getNiNj _modelGame
+    status = if computeRunning _modelGame then "..." else ", done !!!"
 
 initCanvas :: DOMRef -> Canvas Resources
 initCanvas _ = liftJSM $ 
@@ -133,7 +140,7 @@ drawCanvas Model{..} w h Resources{..} = do
       _     -> drawImage (_resEmpty, x, y)
 
   -- draw boxes
-  let (bs1, bs2) = getBoxes12 _modelGame 
+  let (bs1, bs2) = computeBoxes12 _modelGame 
   forM_ bs1 $ \ij -> 
     let (x, y) = ij2xy ij
     in drawImage (_resBox1, x, y)
@@ -142,7 +149,7 @@ drawCanvas Model{..} w h Resources{..} = do
     in drawImage (_resBox2, x, y)
 
   -- draw player
-  let (xp, yp) = _modelGame & _gameCurrentPos & ij2xy
+  let (xp, yp) = _modelGame & _gamePlayer & ij2xy
   drawImage (_resPlayer, xp, yp)
 
 ij2xy :: (Int, Int) -> (Double, Double)
