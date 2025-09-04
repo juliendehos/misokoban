@@ -42,7 +42,7 @@ jobs:
       - name: Build using Nix
         run: |
           export NIX_PATH=nixpkgs=https://github.com/NixOS/nixpkgs/archive/refs/tags/25.05.tar.gz
-          nix-shell --run "cabal run"
+          nix-shell --run "cabal build"
 
   build-dev:
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build using Nix
-        run: nix develop .#default --command bash -c "cabal update && cabal run"
+        run: nix develop .#default --command bash -c "cabal update && cabal build"
 
   deploy:
     runs-on: ubuntu-latest

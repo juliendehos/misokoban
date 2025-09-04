@@ -12,9 +12,11 @@ import Miso.Lens
 import Miso.Html.Element as H
 import Miso.Html.Event as E
 import Miso.Html.Property as P
+import Miso.String (fromMisoStringEither)
 
 import Model
 import Game
+import GeneratedWorlds (allWorlds)
 
 -------------------------------------------------------------------------------
 -- params
@@ -30,6 +32,7 @@ assetsUrl = "assets/"
 data Action
   = ActionSetLevel Int
   | ActionKey IS.IntSet
+  | ActionAskLevel MisoString
 
 -------------------------------------------------------------------------------
 -- update
@@ -53,6 +56,11 @@ updateModel (ActionKey keys)
       forM_ mg $ \g -> do
         modelGame .= g
         modelNbMoves += 1
+
+updateModel (ActionAskLevel lStr) = do
+  case fromMisoStringEither lStr of
+    Left err -> io_ $ consoleLog $ ms err
+    Right l -> issue $ ActionSetLevel l
 
 -------------------------------------------------------------------------------
 -- resources
@@ -91,8 +99,9 @@ viewModel :: Model -> View Model Action
 viewModel m@Model{..} = 
   div_ []
     [ p_ [] 
-        [ button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "reset" ] 
-        , button_ [ onClick (ActionSetLevel $ 1 + getLevel _modelGame) ] [ "next" ] 
+       [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
+        , button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "new game" ] 
+        , button_ [ onClick (ActionSetLevel $ 1 + getLevel _modelGame) ] [ "next level" ] 
         ]
     , p_ [] [ text ("nb moves: " <> ms (show _modelNbMoves) <> status) ]
     , Canvas.canvas
@@ -104,7 +113,14 @@ viewModel m@Model{..} =
     ]
   where
     (w, h) = ij2xy $ getNiNj _modelGame
+
     status = if computeRunning _modelGame then "" else ", done !!!"
+
+    fmtOption l = 
+      let lStr = ms $ show l
+      in option_
+          [ selected_ (getLevel _modelGame == l), value_ lStr ]
+          [ text ("level " <> lStr) ]
 
 initCanvas :: DOMRef -> Canvas Resources
 initCanvas _ = liftJSM $ 
