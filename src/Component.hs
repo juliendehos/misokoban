@@ -8,6 +8,7 @@ import Data.IntSet qualified as IS
 import Language.Javascript.JSaddle (liftJSM, FromJSVal(..), ToJSVal(..))
 import Miso
 import Miso.Canvas as Canvas
+import Miso.CSS qualified as CSS
 import Miso.Lens
 import Miso.Html.Element as H
 import Miso.Html.Event as E
@@ -40,9 +41,8 @@ data Action
 
 updateModel :: Action -> Transition Model Action
 
-updateModel (ActionSetLevel n) = do
+updateModel (ActionSetLevel n) = 
   put $ mkModel n
-  io_ $ consoleLog $ "level " <> ms (show n)
 
 updateModel (ActionKey keys)
   | IS.member 37 keys = doPlayMove $ playMove MoveLeft
@@ -96,21 +96,23 @@ instance FromJSVal Resources where
 -------------------------------------------------------------------------------
 
 viewModel :: Model -> View Model Action
-viewModel m@Model{..} = 
-  div_ []
+viewModel m@Model{..} =
+  div_ [ id_ "main div" ]
     [ p_ [] 
-       [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
-        , button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "new game" ] 
+        [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
+        , button_ [ onClick (ActionSetLevel $ getLevel _modelGame) ] [ "reset" ] 
         , button_ [ onClick (ActionSetLevel $ 1 + getLevel _modelGame) ] [ "next level" ] 
         ]
     , p_ [] [ text ("nb moves: " <> ms (show _modelNbMoves) <> status) ]
     , Canvas.canvas
         [ width_ $ ms $ show w
         , height_ $ ms $ show h
+        , CSS.style_ [ CSS.border "1px solid black" ]
         ]
         initCanvas
         (drawCanvas m w h)
     ]
+
   where
     (w, h) = ij2xy $ getNiNj _modelGame
 
@@ -166,9 +168,8 @@ ij2xy (i, j) = (fromIntegral (assetSize*j), fromIntegral (assetSize*i))
 
 mkComponent :: App Model Action
 mkComponent = 
-  let initialMode = mkModel 1
-  in (component initialMode updateModel viewModel)
-      { subs = [ keyboardSub ActionKey ]
-      -- , logLevel = DebugAll
-      }
+  (component initialModel updateModel viewModel)
+    { subs = [ keyboardSub ActionKey ]
+    -- , logLevel = DebugAll
+    }
 

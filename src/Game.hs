@@ -42,7 +42,7 @@ getLevel = _gameWorldIdx
 mkGame :: Int -> Game
 mkGame n = Game w (k + 1) (w ^. worldPlayer) (w ^. worldBoxes)
   where
-    k = n-1 `mod` length allWorlds
+    k = mod (n-1) (length allWorlds)
     w = allWorlds !! k
 
 playMove :: Move -> Game -> Maybe Game
