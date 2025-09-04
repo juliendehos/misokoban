@@ -35,6 +35,7 @@ executable app
     base,
     containers,
     jsaddle,
+    lens,
     miso,
     vector
 

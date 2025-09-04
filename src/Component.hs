@@ -4,7 +4,7 @@
 module Component (mkComponent) where
 
 import Data.IntSet qualified as IS
-import Language.Javascript.JSaddle (JSM, liftJSM, FromJSVal(..), ToJSVal(..))
+import Language.Javascript.JSaddle (liftJSM, FromJSVal(..), ToJSVal(..))
 import Miso
 import Miso.Canvas as Canvas
 import Miso.Lens
@@ -14,7 +14,7 @@ import Miso.Html.Property as P
 import Miso.CSS as CSS
 
 import Model
-import World
+import Game
 
 -------------------------------------------------------------------------------
 -- params
@@ -44,17 +44,17 @@ updateModel ActionSayHelloWorld =
 
 updateModel (ActionKey keys)
   | IS.member 37 keys = do
-      modelPos %= over _1 (subtract 1)
-      io_ $ consoleLog "left"
+      modelGame %= playMove MoveUp
+      modelNbMoves += 1
   | IS.member 38 keys = do
-      modelPos %= over _2 (subtract 1)
-      io_ $ consoleLog "up"
+      modelGame %= playMove MoveLeft
+      modelNbMoves += 1
   | IS.member 39 keys = do
-      modelPos %= over _1 (+1)
-      io_ $ consoleLog "right"
+      modelGame %= playMove MoveDown
+      modelNbMoves += 1
   | IS.member 40 keys = do
-      modelPos %= over _2 (+1)
-      io_ $ consoleLog "down"
+      modelGame %= playMove MoveRight
+      modelNbMoves += 1
   | otherwise = pure ()
 
 -------------------------------------------------------------------------------
@@ -62,7 +62,11 @@ updateModel (ActionKey keys)
 -------------------------------------------------------------------------------
 
 data Resources = Resources
-  { _resEmpty :: Image
+  { _resBox1 :: Image
+  , _resBox2 :: Image
+  , _resEmpty :: Image
+  , _resPlayer :: Image
+  , _resTarget :: Image
   , _resWall :: Image
   }
 
@@ -71,15 +75,12 @@ instance ToJSVal Resources where
 
 instance FromJSVal Resources where
   fromJSVal v = do
-    [empty', wall'] <- fromJSValUnchecked v
-    pure $ Just $ Resources empty' wall'
+    [b1, b2, e, p, t, w] <- fromJSValUnchecked v
+    pure $ Just $ Resources b1 b2 e p t w
 
 -------------------------------------------------------------------------------
 -- view
 -------------------------------------------------------------------------------
-
-assetSizeD :: Double
-assetSizeD = fromIntegral assetSize
 
 viewModel :: Model -> View Model Action
 viewModel m = 
@@ -95,17 +96,30 @@ viewModel m =
 
 initCanvas :: DOMRef -> Canvas Resources
 initCanvas _ = liftJSM $ 
-  Resources <$> newImage (assetsUrl <> "empty.png")
+  Resources <$> newImage (assetsUrl <> "box1.png")
+            <*> newImage (assetsUrl <> "box2.png")
+            <*> newImage (assetsUrl <> "empty.png")
+            <*> newImage (assetsUrl <> "player.png")
+            <*> newImage (assetsUrl <> "target.png")
             <*> newImage (assetsUrl <> "wall.png")
 
 drawCanvas :: Model -> Resources -> Canvas ()
 drawCanvas Model{..} Resources{..} = do
   globalCompositeOperation DestinationOver
   clearRect (0, 0, 300, 300)
-  let (i, j) = _modelPos
-  drawImage (_resWall, fromIntegral (assetSize*i), fromIntegral (assetSize*j))
-  fillStyle (Canvas.color CSS.red)
-  fillRect (0, 0, 300, 300)
+
+  forGame _modelGame $ \ij c -> do
+    let (x, y) = ij2xy ij
+    case c of
+      CellT -> drawImage (_resTarget, x, y)
+      CellW -> drawImage (_resWall, x, y)
+      _     -> drawImage (_resEmpty, x, y)
+
+  let (xp, yp) = _modelGame & _gameCurrentPos & ij2xy
+  drawImage (_resPlayer, xp, yp)
+
+ij2xy :: (Int, Int) -> (Double, Double)
+ij2xy (i, j) = (fromIntegral (assetSize*j), fromIntegral (assetSize*i))
 
 -------------------------------------------------------------------------------
 -- component
@@ -113,8 +127,9 @@ drawCanvas Model{..} Resources{..} = do
 
 mkComponent :: App Model Action
 mkComponent = 
-  (component mkModel updateModel viewModel)
-    { subs = [ keyboardSub ActionKey ]
-    , logLevel = DebugAll
-    }
+  let initialMode = mkModel 1
+  in (component initialMode updateModel viewModel)
+      { subs = [ keyboardSub ActionKey ]
+      , logLevel = DebugAll
+      }
 

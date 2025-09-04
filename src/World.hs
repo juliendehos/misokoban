@@ -1,10 +1,9 @@
 
 module World where
 
+import Control.Lens
 import Data.Set qualified as S
 import Data.Vector qualified as V
-import Miso.Lens
-import Miso.Lens.TH
 
 -------------------------------------------------------------------------------
 --  params
@@ -33,11 +32,6 @@ data World = World
   } deriving (Eq, Show)
 
 makeLenses ''World
-
-mkWorld :: (Int, Int) -> World
-mkWorld (ni, nj) = World (ni, nj) board S.empty (0, 0)
-  where
-    board = V.replicate (ni*nj) CellE
 
 -------------------------------------------------------------------------------
 -- MyShow typeclass, for generating worlds source code from images
