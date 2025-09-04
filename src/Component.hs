@@ -3,7 +3,7 @@
 
 module Component (mkComponent) where
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.IntSet qualified as IS
 import Language.Javascript.JSaddle (liftJSM, FromJSVal(..), ToJSVal(..))
 import Miso
@@ -34,6 +34,8 @@ data Action
   = ActionSetLevel Int
   | ActionKey IS.IntSet
   | ActionAskLevel MisoString
+  | ActionAskTime
+  | ActionSetTime Double
 
 -------------------------------------------------------------------------------
 -- update
@@ -52,6 +54,7 @@ updateModel (ActionKey keys)
   | otherwise = pure ()
   where
     doPlayMove f = do
+      modelStarting .= False
       mg <- f <$> use modelGame
       forM_ mg $ \g -> do
         modelGame .= g
@@ -61,6 +64,15 @@ updateModel (ActionAskLevel lStr) = do
   case fromMisoStringEither lStr of
     Left err -> io_ $ consoleLog $ ms err
     Right l -> issue $ ActionSetLevel l
+
+updateModel ActionAskTime = do
+  starting <- use modelStarting
+  when starting $
+    io (ActionSetTime <$> now)
+
+updateModel (ActionSetTime t) = do
+  modelTime .= t
+  issue ActionAskTime
 
 -------------------------------------------------------------------------------
 -- resources
@@ -179,6 +191,7 @@ mkComponent :: App Model Action
 mkComponent = 
   (component initialModel updateModel viewModel)
     { subs = [ keyboardSub ActionKey ]
+    , initialAction = Just ActionAskTime
     -- , logLevel = DebugAll
     }
 
