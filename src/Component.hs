@@ -106,7 +106,7 @@ doPlayMove f = do
   g0 <- use modelGame
   let mg1 = f g0
   forM_ mg1 $ \g1 -> do
-    modelPrevious .= Just g0
+    modelPrevious .= if isRunning g1 then Just g0 else Nothing
     modelGame .= g1
     modelNbMoves += 1
 
@@ -155,6 +155,7 @@ viewModel m@Model{..} =
         , a_ [ href_ "https://www.mathsisfun.com/games/sokoban.html" ] [ "Math is fun" ]
         , "."
         ]
+    , p_ [] [ "Use arrow keys or click inside the map to move the player." ]
     , p_ [] 
         [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
         , button_ (undoOpts ++ [ onClick ActionUndo ]) [ "undo" ] 
@@ -177,7 +178,7 @@ viewModel m@Model{..} =
 
     (w, h) = ij2xy $ getNiNj _modelGame
 
-    status = if computeRunning _modelGame then "" else ", done !!!"
+    status = if isRunning _modelGame then "" else ", done !!!"
 
     fmtOption l = 
       let lStr = ms $ show l
@@ -208,7 +209,7 @@ drawCanvas Model{..} w h Resources{..} = do
       _     -> drawImage (_resEmpty, x, y)
 
   -- draw boxes
-  let (bs1, bs2) = computeBoxes12 _modelGame 
+  let (bs1, bs2) = getBoxes12 _modelGame 
   forM_ bs1 $ \ij -> 
     let (x, y) = ij2xy ij
     in drawImage (_resBox1, x, y)
