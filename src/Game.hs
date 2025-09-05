@@ -3,11 +3,12 @@ module Game
   ( World.assetSize
   , World.Cell(..)
   , Move(..)
-  , Game(..)
+  , Game
   , mkGame
   , playMove
   , forGame
   , getNiNj
+  , getPlayer
   , computeBoxes12
   , computeRunning
   , computeTerminated
@@ -50,6 +51,9 @@ playMove m g =
 
 getNiNj :: Game -> (Int, Int)
 getNiNj g = g ^. gameWorld . worldNiNj
+
+getPlayer :: Game -> Position
+getPlayer g = g ^. gamePlayer
 
 forGame :: (Monad m) => Game -> ((Int, Int) -> Cell -> m ()) -> m ()
 forGame g f = 

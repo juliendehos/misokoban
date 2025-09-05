@@ -29,6 +29,16 @@ assetsUrl :: MisoString
 assetsUrl = "assets/"
 
 -------------------------------------------------------------------------------
+-- helpers
+-------------------------------------------------------------------------------
+
+xy2ij :: (Double, Double) -> (Int, Int)
+xy2ij (x, y) = (floor y `div` assetSize, floor x `div` assetSize)
+
+ij2xy :: (Int, Int) -> (Double, Double)
+ij2xy (i, j) = (fromIntegral (assetSize*j), fromIntegral (assetSize*i))
+
+-------------------------------------------------------------------------------
 -- actions
 -------------------------------------------------------------------------------
 
@@ -38,6 +48,7 @@ data Action
   | ActionAskLevel MisoString
   | ActionAskTime
   | ActionSetTime Double
+  | ActionPointer PointerEvent
 
 -------------------------------------------------------------------------------
 -- update
@@ -54,12 +65,6 @@ updateModel (ActionKey keys)
   | IS.member 39 keys = doPlayMove $ playMove MoveRight
   | IS.member 40 keys = doPlayMove $ playMove MoveDown
   | otherwise = pure ()
-  where
-    doPlayMove f = do
-      mg <- f <$> use modelGame
-      forM_ mg $ \g -> do
-        modelGame .= g
-        modelNbMoves += 1
 
 updateModel (ActionAskLevel lStr) = do
   case fromMisoStringEither lStr of
@@ -74,6 +79,26 @@ updateModel ActionAskTime = do
 updateModel (ActionSetTime t) = do
   modelTime .= t
   issue ActionAskTime
+
+updateModel (ActionPointer event) = do
+  when (button event == 0) $ do
+    (ip, jp) <- getPlayer <$> use modelGame
+    let
+      (ie, je) = xy2ij $ offset event 
+      di = ie - ip
+      dj = je - jp
+    case (abs di > abs dj, di > 0, dj > 0) of
+      (True, True, _)   -> doPlayMove $ playMove MoveDown
+      (True, False, _)  -> doPlayMove $ playMove MoveUp
+      (False, _, True)  -> doPlayMove $ playMove MoveRight
+      (False, _, False) -> doPlayMove $ playMove MoveLeft
+
+doPlayMove :: (Game -> Maybe Game) -> Transition Model Action
+doPlayMove f = do
+  mg <- f <$> use modelGame
+  forM_ mg $ \g -> do
+    modelGame .= g
+    modelNbMoves += 1
 
 -------------------------------------------------------------------------------
 -- resources
@@ -130,6 +155,7 @@ viewModel m@Model{..} =
         [ width_ $ ms $ show w
         , height_ $ ms $ show h
         , CSS.style_ [ CSS.border "1px solid black" ]
+        , onPointerUp ActionPointer
         ]
         initCanvas
         (drawCanvas m w h)
@@ -178,11 +204,8 @@ drawCanvas Model{..} w h Resources{..} = do
     in drawImage (_resBox2, x, y)
 
   -- draw player
-  let (xp, yp) = _modelGame & _gamePlayer & ij2xy
+  let (xp, yp) = _modelGame & getPlayer & ij2xy
   drawImage (_resPlayer, xp, yp)
-
-ij2xy :: (Int, Int) -> (Double, Double)
-ij2xy (i, j) = (fromIntegral (assetSize*j), fromIntegral (assetSize*i))
 
 -------------------------------------------------------------------------------
 -- component
@@ -192,6 +215,7 @@ mkComponent :: App Model Action
 mkComponent = 
   (component initialModel updateModel viewModel)
     { subs = [ keyboardSub ActionKey ]
+    , events = defaultEvents <> pointerEvents
     , initialAction = Just ActionAskTime
     -- , logLevel = DebugAll
     }
