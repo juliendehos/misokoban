@@ -7,6 +7,7 @@ import Control.Concurrent (threadDelay)
 import Control.Monad (forM_, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntSet qualified as IS
+import Data.Maybe (isNothing)
 import Language.Javascript.JSaddle (liftJSM, FromJSVal(..), ToJSVal(..))
 import Miso
 import Miso.Canvas as Canvas
@@ -49,6 +50,7 @@ data Action
   | ActionAskTime
   | ActionSetTime Double
   | ActionPointer PointerEvent
+  | ActionUndo
 
 -------------------------------------------------------------------------------
 -- update
@@ -93,11 +95,19 @@ updateModel (ActionPointer event) = do
       (False, _, True)  -> doPlayMove $ playMove MoveRight
       (False, _, False) -> doPlayMove $ playMove MoveLeft
 
+updateModel ActionUndo = do
+  previous <- use modelPrevious
+  forM_ previous $ \g -> do
+    modelPrevious .= Nothing
+    modelGame .= g
+
 doPlayMove :: (Game -> Maybe Game) -> Transition Model Action
 doPlayMove f = do
-  mg <- f <$> use modelGame
-  forM_ mg $ \g -> do
-    modelGame .= g
+  g0 <- use modelGame
+  let mg1 = f g0
+  forM_ mg1 $ \g1 -> do
+    modelPrevious .= Just g0
+    modelGame .= g1
     modelNbMoves += 1
 
 -------------------------------------------------------------------------------
@@ -147,6 +157,7 @@ viewModel m@Model{..} =
         ]
     , p_ [] 
         [ select_ [ onChange ActionAskLevel ] (map fmtOption [1 .. length allWorlds])
+        , button_ (undoOpts ++ [ onClick ActionUndo ]) [ "undo" ] 
         , button_ [ onClick (ActionSetLevel _modelLevel) ] [ "reset" ] 
         , button_ [ onClick (ActionSetLevel (1 + _modelLevel)) ] [ "next level" ] 
         ]
@@ -162,6 +173,8 @@ viewModel m@Model{..} =
     ]
 
   where
+    undoOpts = [ disabled_ | isNothing _modelPrevious ]
+
     (w, h) = ij2xy $ getNiNj _modelGame
 
     status = if computeRunning _modelGame then "" else ", done !!!"
