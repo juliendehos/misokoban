@@ -3,7 +3,9 @@
 
 module Component (mkComponent) where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad (forM_, when)
+import Control.Monad.IO.Class (liftIO)
 import Data.IntSet qualified as IS
 import Language.Javascript.JSaddle (liftJSM, FromJSVal(..), ToJSVal(..))
 import Miso
@@ -65,9 +67,9 @@ updateModel (ActionAskLevel lStr) = do
     Right l -> issue $ ActionSetLevel l
 
 updateModel ActionAskTime = do
-  t <- use modelTime
-  when (t < 3_000) $
-    io (ActionSetTime <$> now)
+  io $ do
+    liftIO $ threadDelay 1_000_000
+    ActionSetTime <$> now
 
 updateModel (ActionSetTime t) = do
   modelTime .= t
